@@ -1,4 +1,4 @@
-function BugDetail({ bug, onClose }) {
+function BugDetail({ bug, onClose, onEdit, onDelete }) {
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -41,14 +41,19 @@ function BugDetail({ bug, onClose }) {
             <Field label="Created" value={formatDate(bug.createdAt)} inline />
             <Field label="Last Updated" value={formatDate(bug.updatedAt)} inline />
           </div>
+
+          <div className="form-actions">
+            <button className="btn-danger" onClick={onDelete}>Delete</button>
+            <button className="btn-primary" onClick={onEdit}>Edit</button>
+          </div>
         </div>
       </div>
     </div>
   );
 }
 
-// Small helper component for label + value pairs
 function Field({ label, value, multiline, inline }) {
+  if (!value) return null;
   return (
     <div className={`field ${inline ? 'field-inline' : ''}`}>
       <div className="field-label">{label}</div>
@@ -57,7 +62,6 @@ function Field({ label, value, multiline, inline }) {
   );
 }
 
-// Helper: format ISO timestamp into a readable string
 function formatDate(isoString) {
   const date = new Date(isoString);
   return date.toLocaleString('en-IN', {

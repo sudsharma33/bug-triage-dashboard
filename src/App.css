@@ -47,6 +47,21 @@
   background-color: #fafafa;
 }
 
+/* ===== Toolbar (filters + new bug button) ===== */
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.toolbar .filters {
+  margin-bottom: 0;
+  flex: 1;
+}
+
 /* ===== Filters ===== */
 .filters {
   display: flex;
@@ -89,6 +104,43 @@
 
 .bug-row:hover {
   background-color: #f0f7ff !important;
+}
+
+/* ===== Buttons ===== */
+.btn-primary, .btn-secondary, .btn-danger {
+  padding: 0.6rem 1.2rem;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all 0.15s ease;
+}
+
+.btn-primary {
+  background: #2563eb;
+  color: white;
+}
+.btn-primary:hover {
+  background: #1d4ed8;
+}
+
+.btn-secondary {
+  background: white;
+  color: #444;
+  border-color: #ccc;
+}
+.btn-secondary:hover {
+  background: #f5f5f5;
+}
+
+.btn-danger {
+  background: white;
+  color: #b91c1c;
+  border-color: #fca5a5;
+}
+.btn-danger:hover {
+  background: #fef2f2;
 }
 
 /* ===== Modal ===== */
@@ -224,4 +276,74 @@
 .field-inline {
   flex: 1;
   margin-bottom: 0;
+}
+
+/* ===== Form ===== */
+.form-field {
+  margin-bottom: 1rem;
+}
+
+.form-field label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #555;
+  margin-bottom: 0.35rem;
+}
+
+.form-field .required {
+  color: #b91c1c;
+}
+
+.form-field input,
+.form-field textarea,
+.form-field select {
+  width: 100%;
+  padding: 0.5rem 0.7rem;
+  font-size: 0.9rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background: white;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+.form-field textarea {
+  resize: vertical;
+  font-family: 'SF Mono', Menlo, monospace;
+  font-size: 0.85rem;
+}
+
+.form-field input:focus,
+.form-field textarea:focus,
+.form-field select:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+.form-error {
+  color: #b91c1c;
+  font-size: 0.8rem;
+  margin-top: 0.25rem;
+}
+
+.form-row {
+  display: flex;
+  gap: 1rem;
+}
+
+.form-row .form-field {
+  flex: 1;
+}
+
+.form-actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid #eee;
 }
