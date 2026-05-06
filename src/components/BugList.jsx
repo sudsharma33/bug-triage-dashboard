@@ -1,13 +1,12 @@
 import { useState } from 'react';
 import { sampleBugs } from '../data/sampleBugs.js';
+import BugDetail from './BugDetail.jsx';
 
 function BugList() {
-  // State for the filters
   const [statusFilter, setStatusFilter] = useState('All');
   const [severityFilter, setSeverityFilter] = useState('All');
+  const [selectedBug, setSelectedBug] = useState(null);
 
-  // Derived data: filter the bugs based on current filter state.
-  // This runs on every render, which is fine for a small list.
   const filteredBugs = sampleBugs.filter((bug) => {
     const statusMatch = statusFilter === 'All' || bug.status === statusFilter;
     const severityMatch = severityFilter === 'All' || bug.severity === severityFilter;
@@ -64,7 +63,11 @@ function BugList() {
             </tr>
           ) : (
             filteredBugs.map((bug) => (
-              <tr key={bug.id}>
+              <tr
+                key={bug.id}
+                className="bug-row"
+                onClick={() => setSelectedBug(bug)}
+              >
                 <td>{bug.id}</td>
                 <td>{bug.title}</td>
                 <td>{bug.severity}</td>
@@ -77,8 +80,12 @@ function BugList() {
           )}
         </tbody>
       </table>
+
+      {selectedBug && (
+        <BugDetail bug={selectedBug} onClose={() => setSelectedBug(null)} />
+      )}
     </div>
   );
 }
 
-export default BugList;   
+export default BugList;
