@@ -1,72 +1,89 @@
-function BugDetail({ bug, onClose, onEdit, onDelete }) {
+function BugDetail({ bug, onClose, onEdit, onDelete, onCloseBug }) {
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className="modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <div>
             <span className="bug-id">{bug.id}</span>
             <h2>{bug.title}</h2>
           </div>
-          <button className="close-btn" onClick={onClose} aria-label="Close">×</button>
+          <button className="close" onClick={onClose} aria-label="Close">×</button>
         </div>
 
         <div className="modal-body">
-          <div className="badges">
-            <span className={`badge severity-${bug.severity.toLowerCase()}`}>{bug.severity}</span>
-            <span className="badge priority">{bug.priority}</span>
-            <span className={`badge status-${bug.status.toLowerCase().replace(' ', '-')}`}>{bug.status}</span>
-            <span className="badge module">{bug.module}</span>
+          <div className="detail-meta">
+            <Meta k="Severity" v={<span className={`badge sev-${bug.severity}`}>{bug.severity}</span>} />
+            <Meta k="Priority" v={<span className="badge priority">{bug.priority}</span>} />
+            <Meta k="Status" v={<span className={`badge st-${bug.status.replace(' ', '-')}`}>{bug.status}</span>} />
+            <Meta k="Module" v={bug.module} />
+            <Meta k="Assignee" v={bug.assignee} />
+            <Meta k="Reporter" v={bug.reporter} />
+            <Meta k="Build" v={bug.buildNumber || '—'} />
+            <Meta k="Platform" v={bug.platform || '—'} />
+            <Meta k="Created" v={formatDate(bug.createdAt)} />
+            <Meta k="Updated" v={formatDate(bug.updatedAt)} />
           </div>
 
           <Field label="Description" value={bug.description} />
-          <Field label="Steps to Reproduce" value={bug.stepsToReproduce} multiline />
+          <Field label="Steps to Reproduce" value={bug.stepsToReproduce} />
           <Field label="Expected Result" value={bug.expectedResult} />
           <Field label="Actual Result" value={bug.actualResult} />
+          <Field label="Logs" value={bug.logs} />
+          <Field label="Notes" value={bug.notes} />
 
-          <div className="field-row">
-            <Field label="Build Number" value={bug.buildNumber} inline />
-            <Field label="Platform" value={bug.platform} inline />
-          </div>
+          {bug.screenshotUrl && (
+            <Field label="Screenshot URL" value={bug.screenshotUrl} />
+          )}
 
-          <div className="field-row">
-            <Field label="Reporter" value={bug.reporter} inline />
-            <Field label="Assignee" value={bug.assignee} inline />
-          </div>
+          {bug.screenshots && bug.screenshots.length > 0 && (
+            <div className="detail-section">
+              <h4>Screenshots</h4>
+              <div className="detail-screens">
+                {bug.screenshots.map((src, i) => (
+                  <img key={i} src={src} alt={`screenshot-${i + 1}`} />
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
 
-          {bug.screenshotUrl && <Field label="Screenshot URL" value={bug.screenshotUrl} />}
-          {bug.logs && <Field label="Logs" value={bug.logs} multiline />}
-          {bug.notes && <Field label="Notes" value={bug.notes} multiline />}
-
-          <div className="field-row">
-            <Field label="Created" value={formatDate(bug.createdAt)} inline />
-            <Field label="Last Updated" value={formatDate(bug.updatedAt)} inline />
-          </div>
-
-          <div className="form-actions">
-            <button className="btn-danger" onClick={onDelete}>Delete</button>
-            <button className="btn-primary" onClick={onEdit}>Edit</button>
-          </div>
+        <div className="modal-footer">
+          <button className="btn btn-danger" onClick={onDelete}>Delete</button>
+          <div className="spacer" />
+          <button className="btn btn-secondary" onClick={onEdit}>Edit</button>
+          {bug.status !== 'Closed' && (
+            <button className="btn btn-success" onClick={onCloseBug}>Close Bug</button>
+          )}
         </div>
       </div>
     </div>
   );
 }
 
-function Field({ label, value, multiline, inline }) {
+function Meta({ k, v }) {
+  return (
+    <div className="item">
+      <div className="k">{k}</div>
+      <div className="v">{v}</div>
+    </div>
+  );
+}
+
+function Field({ label, value }) {
   if (!value) return null;
   return (
-    <div className={`field ${inline ? 'field-inline' : ''}`}>
-      <div className="field-label">{label}</div>
-      <div className={`field-value ${multiline ? 'field-multiline' : ''}`}>{value}</div>
+    <div className="detail-section">
+      <h4>{label}</h4>
+      <div className="value">{value}</div>
     </div>
   );
 }
 
 function formatDate(isoString) {
-  const date = new Date(isoString);
-  return date.toLocaleString('en-IN', {
+  if (!isoString) return '—';
+  return new Date(isoString).toLocaleString('en-IN', {
     dateStyle: 'medium',
-    timeStyle: 'short'
+    timeStyle: 'short',
   });
 }
 

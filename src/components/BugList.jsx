@@ -1,36 +1,38 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { bugRepository } from '../data/bugRepository.js';
 import BugDetail from './BugDetail.jsx';
 import BugForm from './BugForm.jsx';
 
-function BugList() {
-  const [bugs, setBugs] = useState([]);
+function BugList({ bugs, onChange }) {
+  const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const [severityFilter, setSeverityFilter] = useState('All');
+  const [priorityFilter, setPriorityFilter] = useState('All');
   const [selectedBug, setSelectedBug] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [editingBug, setEditingBug] = useState(null);
 
-  // Load bugs from repository on mount
-  useEffect(() => {
-    setBugs(bugRepository.getAll());
-  }, []);
-
   const filteredBugs = bugs.filter((bug) => {
-    const statusMatch = statusFilter === 'All' || bug.status === statusFilter;
-    const severityMatch = severityFilter === 'All' || bug.severity === severityFilter;
-    return statusMatch && severityMatch;
+    if (statusFilter !== 'All' && bug.status !== statusFilter) return false;
+    if (severityFilter !== 'All' && bug.severity !== severityFilter) return false;
+    if (priorityFilter !== 'All' && bug.priority !== priorityFilter) return false;
+    if (search) {
+      const hay = [bug.id, bug.title, bug.module, bug.assignee, bug.buildNumber, bug.platform]
+        .join(' ').toLowerCase();
+      if (!hay.includes(search.toLowerCase())) return false;
+    }
+    return true;
   });
 
   function handleAddBug(bugData) {
     bugRepository.add(bugData);
-    setBugs(bugRepository.getAll());
+    onChange();
     setShowForm(false);
   }
 
   function handleEditBug(bugData) {
     bugRepository.update(editingBug.id, bugData);
-    setBugs(bugRepository.getAll());
+    onChange();
     setEditingBug(null);
     setSelectedBug(null);
   }
@@ -38,9 +40,16 @@ function BugList() {
   function handleDeleteBug(id) {
     if (window.confirm('Delete this bug? This cannot be undone.')) {
       bugRepository.delete(id);
-      setBugs(bugRepository.getAll());
+      onChange();
       setSelectedBug(null);
     }
+  }
+
+  function handleCloseBug() {
+    if (!selectedBug) return;
+    bugRepository.update(selectedBug.id, { status: 'Closed' });
+    onChange();
+    setSelectedBug(null);
   }
 
   function startEdit(bug) {
@@ -49,78 +58,84 @@ function BugList() {
   }
 
   return (
-    <div className="bug-list">
-      <div className="toolbar">
-        <div className="filters">
-          <label>
-            Status:
-            <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-              <option>All</option>
-              <option>Open</option>
-              <option>In Progress</option>
-              <option>Fixed</option>
-              <option>Closed</option>
-              <option>Reopened</option>
-            </select>
-          </label>
-
-          <label>
-            Severity:
-            <select value={severityFilter} onChange={(e) => setSeverityFilter(e.target.value)}>
-              <option>All</option>
-              <option>Critical</option>
-              <option>High</option>
-              <option>Medium</option>
-              <option>Low</option>
-            </select>
-          </label>
+    <section>
+      <div className="page-header">
+        <div>
+          <h1>Bugs</h1>
+          <p>Log, filter, edit and close defects ({filteredBugs.length} of {bugs.length}).</p>
         </div>
-
-        <button className="btn-primary" onClick={() => setShowForm(true)}>
+        <button className="btn btn-primary" onClick={() => setShowForm(true)}>
           + New Bug
         </button>
       </div>
 
-      <h2>Bugs ({filteredBugs.length} of {bugs.length})</h2>
+      <div className="toolbar">
+        <input
+          type="text"
+          className="search"
+          placeholder="🔍 Search title, module, assignee, build…"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+        <select value={severityFilter} onChange={(e) => setSeverityFilter(e.target.value)}>
+          <option value="All">All Severities</option>
+          <option>Critical</option>
+          <option>High</option>
+          <option>Medium</option>
+          <option>Low</option>
+        </select>
+        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+          <option value="All">All Statuses</option>
+          <option>Open</option>
+          <option>In Progress</option>
+          <option>Fixed</option>
+          <option>Closed</option>
+          <option>Reopened</option>
+        </select>
+        <select value={priorityFilter} onChange={(e) => setPriorityFilter(e.target.value)}>
+          <option value="All">All Priorities</option>
+          <option>P1</option>
+          <option>P2</option>
+          <option>P3</option>
+          <option>P4</option>
+        </select>
+      </div>
 
-      <table>
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Title</th>
-            <th>Severity</th>
-            <th>Priority</th>
-            <th>Status</th>
-            <th>Module</th>
-            <th>Assignee</th>
-          </tr>
-        </thead>
-        <tbody>
-          {filteredBugs.length === 0 ? (
-            <tr>
-              <td colSpan="7" className="empty-state">
-                No bugs match the current filters.
-              </td>
-            </tr>
-          ) : (
-            filteredBugs.map((bug) => (
-              <tr
-                key={bug.id}
-                className="bug-row"
-                onClick={() => setSelectedBug(bug)}
-              >
-                <td>{bug.id}</td>
-                <td>{bug.title}</td>
-                <td>{bug.severity}</td>
-                <td>{bug.priority}</td>
-                <td>{bug.status}</td>
-                <td>{bug.module}</td>
-                <td>{bug.assignee}</td>
+      <div className="table-wrap">
+        {filteredBugs.length === 0 ? (
+          <div className="empty">
+            <div className="empty-emoji">🐞</div>
+            <div>No bugs match your filters.</div>
+          </div>
+        ) : (
+          <table className="bugs">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Title</th>
+                <th>Severity</th>
+                <th>Priority</th>
+                <th>Status</th>
+                <th>Module</th>
+                <th>Assignee</th>
               </tr>
-            ))
-          )}
-        </tbody>
-      </table>
+            </thead>
+            <tbody>
+              {filteredBugs.map((bug) => (
+                <tr key={bug.id} onClick={() => setSelectedBug(bug)}>
+                  <td><strong>{bug.id}</strong></td>
+                  <td>{bug.title}</td>
+                  <td><span className={`badge sev-${bug.severity}`}>{bug.severity}</span></td>
+                  <td><span className="badge priority">{bug.priority}</span></td>
+                  <td><span className={`badge st-${bug.status.replace(' ', '-')}`}>{bug.status}</span></td>
+                  <td>{bug.module}</td>
+                  <td>{bug.assignee}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
 
       {selectedBug && (
         <BugDetail
@@ -128,6 +143,7 @@ function BugList() {
           onClose={() => setSelectedBug(null)}
           onEdit={() => startEdit(selectedBug)}
           onDelete={() => handleDeleteBug(selectedBug.id)}
+          onCloseBug={handleCloseBug}
         />
       )}
 
@@ -145,7 +161,7 @@ function BugList() {
           onCancel={() => setEditingBug(null)}
         />
       )}
-    </div>
+    </section>
   );
 }
 

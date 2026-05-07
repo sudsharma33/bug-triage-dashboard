@@ -19,198 +19,245 @@ const EMPTY_BUG = {
   assignee: 'Unassigned',
   reporter: '',
   screenshotUrl: '',
+  screenshots: [],
   logs: '',
-  notes: ''
+  notes: '',
 };
 
-function BugForm({ initialBug, onSubmit, onCancel }) {
-  const [form, setForm] = useState(initialBug || EMPTY_BUG);
-  const [errors, setErrors] = useState({});
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(r.result);
+    r.onerror = reject;
+    r.readAsDataURL(file);
+  });
+}
 
+function BugForm({ initialBug, onSubmit, onCancel }) {
+  const [form, setForm] = useState(() => ({
+    ...EMPTY_BUG,
+    ...(initialBug || {}),
+    screenshots: initialBug?.screenshots ? [...initialBug.screenshots] : [],
+  }));
+  const [errors, setErrors] = useState({});
   const isEditing = Boolean(initialBug);
 
-  function handleChange(field, value) {
-    setForm({ ...form, [field]: value });
-    if (errors[field]) {
-      setErrors({ ...errors, [field]: null });
-    }
+  function setField(field, value) {
+    setForm(prev => ({ ...prev, [field]: value }));
+    if (errors[field]) setErrors(prev => ({ ...prev, [field]: null }));
+  }
+
+  async function handleScreenshotUpload(e) {
+    const files = Array.from(e.target.files || []);
+    const encoded = await Promise.all(files.map(fileToBase64));
+    setForm(prev => ({ ...prev, screenshots: [...prev.screenshots, ...encoded] }));
+    e.target.value = '';
+  }
+
+  function removeScreenshot(idx) {
+    setForm(prev => ({
+      ...prev,
+      screenshots: prev.screenshots.filter((_, i) => i !== idx),
+    }));
   }
 
   function validate() {
-    const newErrors = {};
-    if (!form.title.trim()) newErrors.title = 'Title is required';
-    if (!form.description.trim()) newErrors.description = 'Description is required';
-    if (!form.module.trim()) newErrors.module = 'Module is required';
-    if (!form.reporter.trim()) newErrors.reporter = 'Reporter is required';
-    return newErrors;
+    const next = {};
+    if (!form.title.trim()) next.title = 'Title is required';
+    if (!form.description.trim()) next.description = 'Description is required';
+    if (!form.module.trim()) next.module = 'Module is required';
+    if (!form.reporter.trim()) next.reporter = 'Reporter is required';
+    return next;
   }
 
-  function handleSubmit() {
-    const newErrors = validate();
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
+  function handleSubmit(e) {
+    e.preventDefault();
+    const next = validate();
+    if (Object.keys(next).length > 0) {
+      setErrors(next);
       return;
     }
     onSubmit(form);
   }
 
   return (
-    <div className="modal-overlay" onClick={onCancel}>
-      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+    <div className="modal-backdrop" onClick={onCancel}>
+      <div className="modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <h2>{isEditing ? 'Edit Bug' : 'Log New Bug'}</h2>
-          <button className="close-btn" onClick={onCancel} aria-label="Close">×</button>
+          <button className="close" onClick={onCancel} aria-label="Close">×</button>
         </div>
 
-        <div className="modal-body">
-          <FormField label="Title" required error={errors.title}>
-            <input
-              type="text"
-              value={form.title}
-              onChange={(e) => handleChange('title', e.target.value)}
-              placeholder="Short summary of the bug"
-            />
-          </FormField>
+        <form onSubmit={handleSubmit}>
+          <div className="modal-body">
+            <div className="form-grid">
+              <Field label="Title" required error={errors.title} className="full">
+                <input
+                  type="text"
+                  value={form.title}
+                  onChange={(e) => setField('title', e.target.value)}
+                  placeholder="Short summary of the bug"
+                />
+              </Field>
 
-          <FormField label="Description" required error={errors.description}>
-            <textarea
-              value={form.description}
-              onChange={(e) => handleChange('description', e.target.value)}
-              placeholder="What's the bug?"
-              rows={2}
-            />
-          </FormField>
+              <Field label="Description" required error={errors.description} className="full">
+                <textarea
+                  value={form.description}
+                  onChange={(e) => setField('description', e.target.value)}
+                  placeholder="What's the bug?"
+                  rows={2}
+                />
+              </Field>
 
-          <FormField label="Steps to Reproduce">
-            <textarea
-              value={form.stepsToReproduce}
-              onChange={(e) => handleChange('stepsToReproduce', e.target.value)}
-              placeholder="1. Do this&#10;2. Then this"
-              rows={4}
-            />
-          </FormField>
+              <Field label="Severity">
+                <select value={form.severity} onChange={(e) => setField('severity', e.target.value)}>
+                  {SEVERITIES.map(s => <option key={s}>{s}</option>)}
+                </select>
+              </Field>
+              <Field label="Priority">
+                <select value={form.priority} onChange={(e) => setField('priority', e.target.value)}>
+                  {PRIORITIES.map(p => <option key={p}>{p}</option>)}
+                </select>
+              </Field>
+              <Field label="Status">
+                <select value={form.status} onChange={(e) => setField('status', e.target.value)}>
+                  {STATUSES.map(s => <option key={s}>{s}</option>)}
+                </select>
+              </Field>
 
-          <div className="form-row">
-            <FormField label="Expected Result">
-              <textarea
-                value={form.expectedResult}
-                onChange={(e) => handleChange('expectedResult', e.target.value)}
-                rows={2}
-              />
-            </FormField>
-            <FormField label="Actual Result">
-              <textarea
-                value={form.actualResult}
-                onChange={(e) => handleChange('actualResult', e.target.value)}
-                rows={2}
-              />
-            </FormField>
+              <Field label="Module" required error={errors.module}>
+                <input
+                  type="text"
+                  value={form.module}
+                  onChange={(e) => setField('module', e.target.value)}
+                  placeholder="e.g. Authentication"
+                />
+              </Field>
+              <Field label="Assignee">
+                <input
+                  type="text"
+                  value={form.assignee}
+                  onChange={(e) => setField('assignee', e.target.value)}
+                />
+              </Field>
+              <Field label="Reporter" required error={errors.reporter}>
+                <input
+                  type="text"
+                  value={form.reporter}
+                  onChange={(e) => setField('reporter', e.target.value)}
+                />
+              </Field>
+
+              <Field label="Build Number" className="half">
+                <input
+                  type="text"
+                  value={form.buildNumber}
+                  onChange={(e) => setField('buildNumber', e.target.value)}
+                  placeholder="e.g. v2.4.1-rc3"
+                />
+              </Field>
+              <Field label="Platform">
+                <input
+                  type="text"
+                  value={form.platform}
+                  onChange={(e) => setField('platform', e.target.value)}
+                  placeholder="e.g. macOS / Chrome"
+                />
+              </Field>
+
+              <Field label="Steps to Reproduce" className="full">
+                <textarea
+                  value={form.stepsToReproduce}
+                  onChange={(e) => setField('stepsToReproduce', e.target.value)}
+                  placeholder="1. Do this&#10;2. Then this"
+                  rows={4}
+                />
+              </Field>
+
+              <Field label="Expected Result" className="half">
+                <textarea
+                  value={form.expectedResult}
+                  onChange={(e) => setField('expectedResult', e.target.value)}
+                  rows={2}
+                />
+              </Field>
+              <Field label="Actual Result">
+                <textarea
+                  value={form.actualResult}
+                  onChange={(e) => setField('actualResult', e.target.value)}
+                  rows={2}
+                />
+              </Field>
+
+              <Field label="Screenshot URL" className="full">
+                <input
+                  type="text"
+                  value={form.screenshotUrl}
+                  onChange={(e) => setField('screenshotUrl', e.target.value)}
+                  placeholder="Optional"
+                />
+              </Field>
+
+              <Field label="Screenshots" className="full">
+                <input
+                  type="file"
+                  multiple
+                  accept="image/*"
+                  onChange={handleScreenshotUpload}
+                />
+                {form.screenshots.length > 0 && (
+                  <div className="screenshot-preview">
+                    {form.screenshots.map((src, i) => (
+                      <div key={i} className="thumb">
+                        <img src={src} alt={`screenshot-${i + 1}`} />
+                        <button
+                          type="button"
+                          onClick={() => removeScreenshot(i)}
+                          aria-label="Remove"
+                        >×</button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </Field>
+
+              <Field label="Logs" className="full">
+                <textarea
+                  value={form.logs}
+                  onChange={(e) => setField('logs', e.target.value)}
+                  rows={3}
+                  placeholder="Optional"
+                />
+              </Field>
+
+              <Field label="Notes" className="full">
+                <textarea
+                  value={form.notes}
+                  onChange={(e) => setField('notes', e.target.value)}
+                  rows={2}
+                  placeholder="Optional"
+                />
+              </Field>
+            </div>
           </div>
 
-          <div className="form-row">
-            <FormField label="Severity">
-              <select value={form.severity} onChange={(e) => handleChange('severity', e.target.value)}>
-                {SEVERITIES.map(s => <option key={s}>{s}</option>)}
-              </select>
-            </FormField>
-            <FormField label="Priority">
-              <select value={form.priority} onChange={(e) => handleChange('priority', e.target.value)}>
-                {PRIORITIES.map(p => <option key={p}>{p}</option>)}
-              </select>
-            </FormField>
-            <FormField label="Status">
-              <select value={form.status} onChange={(e) => handleChange('status', e.target.value)}>
-                {STATUSES.map(s => <option key={s}>{s}</option>)}
-              </select>
-            </FormField>
-          </div>
-
-          <div className="form-row">
-            <FormField label="Module" required error={errors.module}>
-              <input
-                type="text"
-                value={form.module}
-                onChange={(e) => handleChange('module', e.target.value)}
-                placeholder="e.g. Authentication"
-              />
-            </FormField>
-            <FormField label="Assignee">
-              <input
-                type="text"
-                value={form.assignee}
-                onChange={(e) => handleChange('assignee', e.target.value)}
-              />
-            </FormField>
-            <FormField label="Reporter" required error={errors.reporter}>
-              <input
-                type="text"
-                value={form.reporter}
-                onChange={(e) => handleChange('reporter', e.target.value)}
-              />
-            </FormField>
-          </div>
-
-          <div className="form-row">
-            <FormField label="Build Number">
-              <input
-                type="text"
-                value={form.buildNumber}
-                onChange={(e) => handleChange('buildNumber', e.target.value)}
-                placeholder="e.g. v2.4.1-rc3"
-              />
-            </FormField>
-            <FormField label="Platform">
-              <input
-                type="text"
-                value={form.platform}
-                onChange={(e) => handleChange('platform', e.target.value)}
-                placeholder="e.g. macOS / Chrome"
-              />
-            </FormField>
-          </div>
-
-          <FormField label="Screenshot URL">
-            <input
-              type="text"
-              value={form.screenshotUrl}
-              onChange={(e) => handleChange('screenshotUrl', e.target.value)}
-              placeholder="Optional"
-            />
-          </FormField>
-
-          <FormField label="Logs">
-            <textarea
-              value={form.logs}
-              onChange={(e) => handleChange('logs', e.target.value)}
-              rows={3}
-              placeholder="Optional"
-            />
-          </FormField>
-
-          <FormField label="Notes">
-            <textarea
-              value={form.notes}
-              onChange={(e) => handleChange('notes', e.target.value)}
-              rows={2}
-              placeholder="Optional"
-            />
-          </FormField>
-
-          <div className="form-actions">
-            <button className="btn-secondary" onClick={onCancel}>Cancel</button>
-            <button className="btn-primary" onClick={handleSubmit}>
+          <div className="modal-footer">
+            <button type="button" className="btn btn-secondary" onClick={onCancel}>
+              Cancel
+            </button>
+            <button type="submit" className="btn btn-primary">
               {isEditing ? 'Save Changes' : 'Log Bug'}
             </button>
           </div>
-        </div>
+        </form>
       </div>
     </div>
   );
 }
 
-function FormField({ label, required, error, children }) {
+function Field({ label, required, error, className = '', children }) {
   return (
-    <div className="form-field">
+    <div className={className}>
       <label>
         {label} {required && <span className="required">*</span>}
       </label>
