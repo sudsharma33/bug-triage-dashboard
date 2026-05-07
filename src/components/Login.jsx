@@ -4,15 +4,18 @@ import { useAuth } from '../auth/AuthContext.jsx';
 function Login() {
   const { login, signup } = useAuth();
   const [tab, setTab] = useState('login');
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
     setError('');
+    setLoading(true);
     const fn = tab === 'login' ? login : signup;
-    const result = fn(username.trim(), password);
+    const result = await fn(email.trim(), password);
+    setLoading(false);
     if (!result.ok) setError(result.error);
   }
 
@@ -48,29 +51,28 @@ function Login() {
         </div>
 
         <form className="auth-form" onSubmit={handleSubmit}>
-          <label>Username</label>
+          <label htmlFor="auth-email">Email</label>
           <input
-            type="text"
-            value={username}
-            onChange={e => setUsername(e.target.value)}
+            id="auth-email"
+            type="email"
+            value={email}
+            onChange={e => setEmail(e.target.value)}
             required
-            autoComplete="username"
+            autoComplete="email"
           />
-          <label>Password</label>
+          <label htmlFor="auth-password">Password</label>
           <input
+            id="auth-password"
             type="password"
             value={password}
             onChange={e => setPassword(e.target.value)}
             required
-            minLength={3}
+            minLength={6}
             autoComplete={tab === 'login' ? 'current-password' : 'new-password'}
           />
-          <button type="submit" className="btn btn-primary btn-block">
-            {tab === 'login' ? 'Sign in' : 'Create account'}
+          <button type="submit" className="btn btn-primary btn-block" disabled={loading}>
+            {loading ? 'Working…' : (tab === 'login' ? 'Sign in' : 'Create account')}
           </button>
-          {tab === 'login' && (
-            <p className="hint">Demo: <code>admin / admin</code></p>
-          )}
           <p className="error">{error}</p>
         </form>
       </div>

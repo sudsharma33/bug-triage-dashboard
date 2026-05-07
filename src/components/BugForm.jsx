@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { Children, cloneElement, isValidElement, useId, useState } from 'react';
 
 const SEVERITIES = ['Critical', 'High', 'Medium', 'Low'];
 const PRIORITIES = ['P1', 'P2', 'P3', 'P4'];
@@ -256,12 +256,21 @@ function BugForm({ initialBug, onSubmit, onCancel }) {
 }
 
 function Field({ label, required, error, className = '', children }) {
+  const generatedId = useId();
+  const childArray = Children.toArray(children);
+  const firstInput = childArray.find(
+    (c) => isValidElement(c) && ['input', 'textarea', 'select'].includes(c.type)
+  );
+  const inputId = firstInput?.props.id || generatedId;
+  const enhanced = childArray.map((c) =>
+    c === firstInput ? cloneElement(c, { id: inputId }) : c
+  );
   return (
     <div className={className}>
-      <label>
+      <label htmlFor={inputId}>
         {label} {required && <span className="required">*</span>}
       </label>
-      {children}
+      {enhanced}
       {error && <div className="form-error">{error}</div>}
     </div>
   );

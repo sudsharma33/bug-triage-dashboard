@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { bugRepository } from '../data/bugRepository.js';
+import { useAuth } from '../auth/AuthContext.jsx';
 import BugDetail from './BugDetail.jsx';
 import BugForm from './BugForm.jsx';
 
-function BugList({ bugs, onChange }) {
+function BugList({ bugs, onChange, loading }) {
+  const { user } = useAuth();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const [severityFilter, setSeverityFilter] = useState('All');
@@ -11,6 +13,7 @@ function BugList({ bugs, onChange }) {
   const [selectedBug, setSelectedBug] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [editingBug, setEditingBug] = useState(null);
+  const [busy, setBusy] = useState(false);
 
   const filteredBugs = bugs.filter((bug) => {
     if (statusFilter !== 'All' && bug.status !== statusFilter) return false;
@@ -24,32 +27,51 @@ function BugList({ bugs, onChange }) {
     return true;
   });
 
-  function handleAddBug(bugData) {
-    bugRepository.add(bugData);
-    onChange();
-    setShowForm(false);
-  }
-
-  function handleEditBug(bugData) {
-    bugRepository.update(editingBug.id, bugData);
-    onChange();
-    setEditingBug(null);
-    setSelectedBug(null);
-  }
-
-  function handleDeleteBug(id) {
-    if (window.confirm('Delete this bug? This cannot be undone.')) {
-      bugRepository.delete(id);
-      onChange();
-      setSelectedBug(null);
+  async function handleAddBug(bugData) {
+    setBusy(true);
+    try {
+      await bugRepository.add({ ...bugData, createdBy: user?.uid });
+      await onChange();
+      setShowForm(false);
+    } finally {
+      setBusy(false);
     }
   }
 
-  function handleCloseBug() {
+  async function handleEditBug(bugData) {
+    setBusy(true);
+    try {
+      await bugRepository.update(editingBug.id, bugData);
+      await onChange();
+      setEditingBug(null);
+      setSelectedBug(null);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleDeleteBug(id) {
+    if (!window.confirm('Delete this bug? This cannot be undone.')) return;
+    setBusy(true);
+    try {
+      await bugRepository.delete(id);
+      await onChange();
+      setSelectedBug(null);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleCloseBug() {
     if (!selectedBug) return;
-    bugRepository.update(selectedBug.id, { status: 'Closed' });
-    onChange();
-    setSelectedBug(null);
+    setBusy(true);
+    try {
+      await bugRepository.update(selectedBug.id, { status: 'Closed' });
+      await onChange();
+      setSelectedBug(null);
+    } finally {
+      setBusy(false);
+    }
   }
 
   function startEdit(bug) {
@@ -64,7 +86,7 @@ function BugList({ bugs, onChange }) {
           <h1>Bugs</h1>
           <p>Log, filter, edit and close defects ({filteredBugs.length} of {bugs.length}).</p>
         </div>
-        <button className="btn btn-primary" onClick={() => setShowForm(true)}>
+        <button className="btn btn-primary" onClick={() => setShowForm(true)} disabled={busy}>
           + New Bug
         </button>
       </div>
@@ -102,10 +124,12 @@ function BugList({ bugs, onChange }) {
       </div>
 
       <div className="table-wrap">
-        {filteredBugs.length === 0 ? (
+        {loading ? (
+          <div className="empty"><div>Loading bugs…</div></div>
+        ) : filteredBugs.length === 0 ? (
           <div className="empty">
             <div className="empty-emoji">🐞</div>
-            <div>No bugs match your filters.</div>
+            <div>{bugs.length === 0 ? 'No bugs yet — log your first one!' : 'No bugs match your filters.'}</div>
           </div>
         ) : (
           <table className="bugs">

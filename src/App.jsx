@@ -9,35 +9,61 @@ import BugForm from './components/BugForm.jsx';
 import { bugRepository } from './data/bugRepository.js';
 
 function Shell() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [view, setView] = useState('dashboard');
   const [bugs, setBugs] = useState([]);
+  const [loadingBugs, setLoadingBugs] = useState(false);
   const [showForm, setShowForm] = useState(false);
+  const [error, setError] = useState('');
 
   useEffect(() => {
-    if (user) setBugs(bugRepository.getAll());
+    if (!user) {
+      setBugs([]);
+      return;
+    }
+    let cancelled = false;
+    setLoadingBugs(true);
+    bugRepository.getAll()
+      .then(rows => { if (!cancelled) setBugs(rows); })
+      .catch(err => { if (!cancelled) setError(err.message); })
+      .finally(() => { if (!cancelled) setLoadingBugs(false); });
+    return () => { cancelled = true; };
   }, [user]);
+
+  if (authLoading) {
+    return <div className="auth-body"><div className="auth-card">Loading…</div></div>;
+  }
 
   if (!user) return <Login />;
 
-  function reload() {
-    setBugs(bugRepository.getAll());
+  async function reload() {
+    try {
+      const rows = await bugRepository.getAll();
+      setBugs(rows);
+    } catch (err) {
+      setError(err.message);
+    }
   }
 
-  function handleQuickAdd(bugData) {
-    bugRepository.add(bugData);
-    reload();
-    setShowForm(false);
+  async function handleQuickAdd(bugData) {
+    try {
+      await bugRepository.add({ ...bugData, createdBy: user.uid });
+      await reload();
+      setShowForm(false);
+    } catch (err) {
+      setError(err.message);
+    }
   }
 
   return (
     <div className="app">
       <Sidebar view={view} onNavigate={setView} />
       <main className="main">
+        {error && <div className="error" role="alert">{error}</div>}
         {view === 'dashboard' ? (
-          <Dashboard bugs={bugs} onNewBug={() => setShowForm(true)} />
+          <Dashboard bugs={bugs} onNewBug={() => setShowForm(true)} loading={loadingBugs} />
         ) : (
-          <BugList bugs={bugs} onChange={reload} />
+          <BugList bugs={bugs} onChange={reload} loading={loadingBugs} />
         )}
       </main>
 

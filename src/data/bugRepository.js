@@ -1,50 +1,66 @@
-import { sampleBugs } from './sampleBugs.js';
+import { db } from '../firebase.js';
+import {
+  collection,
+  doc,
+  getDocs,
+  getDoc,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  query,
+  orderBy,
+  serverTimestamp,
+} from 'firebase/firestore';
 
-const STORAGE_KEY = 'triageboard_bugs';
+const COLLECTION = 'bugs';
+const bugsRef = collection(db, COLLECTION);
+
+function fromSnap(snap) {
+  if (!snap || !snap.exists()) return null;
+  const data = snap.data();
+  return {
+    id: snap.id,
+    ...data,
+    createdAt: data.createdAt?.toDate?.().toISOString() ?? data.createdAt ?? null,
+    updatedAt: data.updatedAt?.toDate?.().toISOString() ?? data.updatedAt ?? null,
+  };
+}
 
 export const bugRepository = {
-  getAll() {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      return JSON.parse(saved);
-    }
-    // First load: seed with sample bugs
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(sampleBugs));
-    return sampleBugs;
+  async getAll() {
+    const q = query(bugsRef, orderBy('createdAt', 'desc'));
+    const snap = await getDocs(q);
+    return snap.docs.map((d) => fromSnap(d));
   },
 
-  save(bugs) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(bugs));
+  async getById(id) {
+    const ref = doc(db, COLLECTION, id);
+    const snap = await getDoc(ref);
+    return fromSnap(snap);
   },
 
-  add(bug) {
-    const bugs = this.getAll();
-    const newBug = {
+  async add(bug) {
+    const payload = {
       ...bug,
-      id: `bug-${String(bugs.length + 1).padStart(3, '0')}`,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
     };
-    const updated = [...bugs, newBug];
-    this.save(updated);
-    return newBug;
+    delete payload.id;
+    const ref = await addDoc(bugsRef, payload);
+    const snap = await getDoc(ref);
+    return fromSnap(snap);
   },
 
-  update(id, updates) {
-    const bugs = this.getAll();
-    const updated = bugs.map(b =>
-      b.id === id ? { ...b, ...updates, updatedAt: new Date().toISOString() } : b
-    );
-    this.save(updated);
-    return updated.find(b => b.id === id);
+  async update(id, updates) {
+    const ref = doc(db, COLLECTION, id);
+    const payload = { ...updates, updatedAt: serverTimestamp() };
+    delete payload.id;
+    await updateDoc(ref, payload);
+    const snap = await getDoc(ref);
+    return fromSnap(snap);
   },
 
-  delete(id) {
-    const bugs = this.getAll().filter(b => b.id !== id);
-    this.save(bugs);
+  async delete(id) {
+    await deleteDoc(doc(db, COLLECTION, id));
   },
-
-  reset() {
-    localStorage.removeItem(STORAGE_KEY);
-  }
 };

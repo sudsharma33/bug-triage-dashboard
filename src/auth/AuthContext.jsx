@@ -1,58 +1,59 @@
 import { createContext, useContext, useEffect, useState } from 'react';
+import {
+  onAuthStateChanged,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signOut,
+} from 'firebase/auth';
+import { auth } from '../firebase.js';
 
 const AuthContext = createContext(null);
 
-const USERS_KEY = 'bt_users';
-const SESSION_KEY = 'bt_session';
-
-function readUsers() {
-  const raw = localStorage.getItem(USERS_KEY);
-  if (raw) return JSON.parse(raw);
-  const seeded = [{ username: 'admin', password: 'admin' }];
-  localStorage.setItem(USERS_KEY, JSON.stringify(seeded));
-  return seeded;
+function shapeUser(fbUser) {
+  if (!fbUser) return null;
+  return {
+    uid: fbUser.uid,
+    email: fbUser.email,
+    username: fbUser.displayName || (fbUser.email ? fbUser.email.split('@')[0] : ''),
+  };
 }
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(() => {
-    const raw = localStorage.getItem(SESSION_KEY);
-    return raw ? JSON.parse(raw) : null;
-  });
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    readUsers();
+    const unsubscribe = onAuthStateChanged(auth, (fbUser) => {
+      setUser(shapeUser(fbUser));
+      setLoading(false);
+    });
+    return unsubscribe;
   }, []);
 
-  function login(username, password) {
-    const users = readUsers();
-    const found = users.find(u => u.username === username && u.password === password);
-    if (!found) return { ok: false, error: 'Invalid username or password.' };
-    const session = { username, ts: Date.now() };
-    localStorage.setItem(SESSION_KEY, JSON.stringify(session));
-    setUser(session);
-    return { ok: true };
-  }
-
-  function signup(username, password) {
-    const users = readUsers();
-    if (users.find(u => u.username === username)) {
-      return { ok: false, error: 'That username is taken.' };
+  async function login(email, password) {
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+      return { ok: true };
+    } catch (err) {
+      return { ok: false, error: err.message };
     }
-    users.push({ username, password });
-    localStorage.setItem(USERS_KEY, JSON.stringify(users));
-    const session = { username, ts: Date.now() };
-    localStorage.setItem(SESSION_KEY, JSON.stringify(session));
-    setUser(session);
-    return { ok: true };
   }
 
-  function logout() {
-    localStorage.removeItem(SESSION_KEY);
-    setUser(null);
+  async function signup(email, password) {
+    try {
+      await createUserWithEmailAndPassword(auth, email, password);
+      return { ok: true };
+    } catch (err) {
+      return { ok: false, error: err.message };
+    }
+  }
+
+  async function logout() {
+    await signOut(auth);
   }
 
   return (
-    <AuthContext.Provider value={{ user, login, signup, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, signup, logout }}>
       {children}
     </AuthContext.Provider>
   );
