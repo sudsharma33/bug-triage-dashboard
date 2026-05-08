@@ -28,9 +28,10 @@ function Login() {
     <div className="auth-body">
       <div className="auth-card">
         <div className="brand">
-          <div className="logo">BT</div>
+          <div className="logo">
+            <img src="/logo.png" alt="Bug Tracker" />
+          </div>
           <h1>Bug Tracker</h1>
-          <p className="subtitle">Log it. Track it. Squash it.</p>
         </div>
 
         <div className="tabs">

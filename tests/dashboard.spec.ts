@@ -1,10 +1,11 @@
 import { test, expect } from '@playwright/test';
-import { resetState, loginAsAdmin, gotoBugs, logBug } from './helpers';
+import { resetAndSeed, loginAsTestUser, gotoBugs, logBug } from './helpers';
+import { STANDARD_FIXTURES } from './firebase';
 
 test.describe('Dashboard', () => {
   test.beforeEach(async ({ page }) => {
-    await resetState(page);
-    await loginAsAdmin(page);
+    await resetAndSeed(page);
+    await loginAsTestUser(page);
   });
 
   test('renders the four stat cards', async ({ page }) => {
@@ -14,11 +15,11 @@ test.describe('Dashboard', () => {
     await expect(page.getByText('Closed', { exact: true })).toBeVisible();
   });
 
-  test('total bugs count matches seeded sample size', async ({ page }) => {
+  test('total bugs count matches seeded fixtures', async ({ page }) => {
     const total = page
       .locator('.stat-card', { hasText: 'Total Bugs' })
       .locator('.value');
-    await expect(total).toHaveText('8');
+    await expect(total).toHaveText(String(STANDARD_FIXTURES.length));
   });
 
   test('renders all five chart cards with canvases', async ({ page }) => {

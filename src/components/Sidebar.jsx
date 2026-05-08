@@ -6,7 +6,9 @@ function Sidebar({ view, onNavigate }) {
   return (
     <aside className="sidebar">
       <div className="brand-row">
-        <div className="logo">BT</div>
+        <div className="logo">
+          <img src="/logo.png" alt="Bug Tracker" />
+        </div>
         <h2>Bug Tracker</h2>
       </div>
       <nav className="nav">

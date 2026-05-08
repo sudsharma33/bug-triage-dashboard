@@ -67,6 +67,9 @@ function BugForm({ initialBug, onSubmit, onCancel }) {
     if (!form.description.trim()) next.description = 'Description is required';
     if (!form.module.trim()) next.module = 'Module is required';
     if (!form.reporter.trim()) next.reporter = 'Reporter is required';
+    if (!form.stepsToReproduce.trim()) next.stepsToReproduce = 'Steps to reproduce are required';
+    if (!form.expectedResult.trim()) next.expectedResult = 'Expected result is required';
+    if (!form.actualResult.trim()) next.actualResult = 'Actual result is required';
     return next;
   }
 
@@ -165,23 +168,22 @@ function BugForm({ initialBug, onSubmit, onCancel }) {
                 />
               </Field>
 
-              <Field label="Steps to Reproduce" className="full">
+              <Field label="Steps to Reproduce" required error={errors.stepsToReproduce} className="full">
                 <textarea
                   value={form.stepsToReproduce}
                   onChange={(e) => setField('stepsToReproduce', e.target.value)}
-                  placeholder="1. Do this&#10;2. Then this"
                   rows={4}
                 />
               </Field>
 
-              <Field label="Expected Result" className="half">
+              <Field label="Expected Result" required error={errors.expectedResult} className="half">
                 <textarea
                   value={form.expectedResult}
                   onChange={(e) => setField('expectedResult', e.target.value)}
                   rows={2}
                 />
               </Field>
-              <Field label="Actual Result">
+              <Field label="Actual Result" required error={errors.actualResult}>
                 <textarea
                   value={form.actualResult}
                   onChange={(e) => setField('actualResult', e.target.value)}
@@ -194,7 +196,7 @@ function BugForm({ initialBug, onSubmit, onCancel }) {
                   type="text"
                   value={form.screenshotUrl}
                   onChange={(e) => setField('screenshotUrl', e.target.value)}
-                  placeholder="Optional"
+                  
                 />
               </Field>
 
@@ -226,7 +228,7 @@ function BugForm({ initialBug, onSubmit, onCancel }) {
                   value={form.logs}
                   onChange={(e) => setField('logs', e.target.value)}
                   rows={3}
-                  placeholder="Optional"
+                  
                 />
               </Field>
 
@@ -235,7 +237,7 @@ function BugForm({ initialBug, onSubmit, onCancel }) {
                   value={form.notes}
                   onChange={(e) => setField('notes', e.target.value)}
                   rows={2}
-                  placeholder="Optional"
+                  
                 />
               </Field>
             </div>

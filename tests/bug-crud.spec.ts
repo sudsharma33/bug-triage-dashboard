@@ -1,10 +1,10 @@
 import { test, expect } from '@playwright/test';
-import { resetState, loginAsAdmin, gotoBugs, logBug } from './helpers';
+import { resetState, loginAsTestUser, gotoBugs, logBug } from './helpers';
 
 test.describe('Bug CRUD', () => {
   test.beforeEach(async ({ page }) => {
     await resetState(page);
-    await loginAsAdmin(page);
+    await loginAsTestUser(page);
     await gotoBugs(page);
   });
 
@@ -21,6 +21,9 @@ test.describe('Bug CRUD', () => {
     await expect(page.getByText('Description is required')).toBeVisible();
     await expect(page.getByText('Module is required')).toBeVisible();
     await expect(page.getByText('Reporter is required')).toBeVisible();
+    await expect(page.getByText('Steps to reproduce are required')).toBeVisible();
+    await expect(page.getByText('Expected result is required')).toBeVisible();
+    await expect(page.getByText('Actual result is required')).toBeVisible();
   });
 
   test('clears a field-specific error once that field is filled', async ({ page }) => {
@@ -34,6 +37,7 @@ test.describe('Bug CRUD', () => {
   });
 
   test('opens detail modal when a row is clicked', async ({ page }) => {
+    await logBug(page, { title: 'Row click target' });
     await page.locator('table.bugs tbody tr').first().click();
     await expect(page.getByRole('button', { name: 'Close Bug' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Edit' })).toBeVisible();
@@ -77,7 +81,7 @@ test.describe('Bug CRUD', () => {
     const title = await logBug(page, { title: 'Doomed bug' });
     await page.locator('table.bugs').getByText(title).click();
 
-    page.once('dialog', dialog => dialog.accept());
+    page.once('dialog', (dialog) => dialog.accept());
     await page.getByRole('button', { name: 'Delete' }).click();
 
     await expect(page.locator('table.bugs').getByText(title)).not.toBeVisible();
@@ -87,13 +91,13 @@ test.describe('Bug CRUD', () => {
     const title = await logBug(page, { title: 'Surviving bug' });
     await page.locator('table.bugs').getByText(title).click();
 
-    page.once('dialog', dialog => dialog.dismiss());
+    page.once('dialog', (dialog) => dialog.dismiss());
     await page.getByRole('button', { name: 'Delete' }).click();
 
     await expect(page.locator('table.bugs').getByText(title)).toBeVisible();
   });
 
-  test('logged bugs persist across page reloads', async ({ page }) => {
+  test('logged bugs persist across page reloads (real DB)', async ({ page }) => {
     const title = await logBug(page, { title: 'Persisted across reload' });
     await page.reload();
     await gotoBugs(page);

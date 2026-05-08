@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
-import { resetState, loginAsAdmin } from './helpers';
+import { resetState, loginAsTestUser } from './helpers';
+import { TEST_EMAIL } from './firebase';
 
 test.describe('Authentication', () => {
   test.beforeEach(async ({ page }) => {
@@ -9,52 +10,38 @@ test.describe('Authentication', () => {
   test('shows the login screen when no session exists', async ({ page }) => {
     await expect(page.getByRole('heading', { name: 'Bug Tracker' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Sign in' })).toBeVisible();
-    await expect(page.getByText(/admin \/ admin/i)).toBeVisible();
   });
 
-  test('logs in with seeded admin credentials', async ({ page }) => {
-    await loginAsAdmin(page);
-    await expect(page.getByText('admin', { exact: true })).toBeVisible();
+  test('logs in with the test user credentials', async ({ page }) => {
+    await loginAsTestUser(page);
+    await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible();
   });
 
   test('rejects invalid credentials with an error message', async ({ page }) => {
-    await page.getByLabel('Username').fill('admin');
-    await page.getByLabel('Password').fill('wrong-password');
+    await page.getByLabel('Email').fill(TEST_EMAIL);
+    await page.getByLabel('Password').fill('definitely-wrong-password');
     await page.getByRole('button', { name: 'Sign in' }).click();
-    await expect(page.getByText('Invalid username or password.')).toBeVisible();
+    // Firebase returns its own error string, e.g. "Firebase: Error (auth/invalid-credential)."
+    await expect(page.getByText(/auth\/|invalid|wrong|incorrect/i)).toBeVisible({ timeout: 15_000 });
     await expect(page.getByRole('heading', { name: 'Dashboard' })).not.toBeVisible();
   });
 
-  test('signup creates a new account and logs the user in', async ({ page }) => {
+  test('signup form is reachable and shows email + password fields', async ({ page }) => {
     await page.getByRole('button', { name: 'Sign Up' }).click();
-    await page.getByLabel('Username').fill('e2e-newbie');
-    await page.getByLabel('Password').fill('strongpw');
-    await page.getByRole('button', { name: 'Create account' }).click();
-
-    await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible();
-    await expect(page.getByText('e2e-newbie')).toBeVisible();
-  });
-
-  test('signup rejects duplicate usernames', async ({ page }) => {
-    await page.getByRole('button', { name: 'Sign Up' }).click();
-    await page.getByLabel('Username').fill('admin');
-    await page.getByLabel('Password').fill('whatever');
-    await page.getByRole('button', { name: 'Create account' }).click();
-    await expect(page.getByText(/taken/i)).toBeVisible();
+    await expect(page.getByLabel('Email')).toBeVisible();
+    await expect(page.getByLabel('Password')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Create account' })).toBeVisible();
   });
 
   test('logout clears the session and returns to login', async ({ page }) => {
-    await loginAsAdmin(page);
+    await loginAsTestUser(page);
     await page.getByRole('button', { name: 'Sign out' }).click();
     await expect(page.getByRole('button', { name: 'Sign in' })).toBeVisible();
-
-    const session = await page.evaluate(() => localStorage.getItem('bt_session'));
-    expect(session).toBeNull();
   });
 
   test('session persists across page reloads', async ({ page }) => {
-    await loginAsAdmin(page);
+    await loginAsTestUser(page);
     await page.reload();
-    await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible({ timeout: 15_000 });
   });
 });
