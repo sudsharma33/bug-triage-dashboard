@@ -6,6 +6,12 @@ test.describe('Dashboard', () => {
   test.beforeEach(async ({ page }) => {
     await resetAndSeed(page);
     await loginAsTestUser(page);
+    // Wait for Firestore data to actually arrive before any test reads stats.
+    // Without this, tests can read "0" before bugs finish loading and the
+    // before/after deltas come out wrong.
+    await expect(
+      page.locator('.stat-card', { hasText: 'Total Bugs' }).locator('.value')
+    ).toHaveText(String(STANDARD_FIXTURES.length), { timeout: 15_000 });
   });
 
   test('renders the four stat cards', async ({ page }) => {
