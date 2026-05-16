@@ -97,6 +97,32 @@
   box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
 }
 
+.password-field {
+  position: relative;
+}
+.password-field input {
+  padding-right: 60px;
+}
+.password-toggle {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  font-family: inherit;
+  border-radius: 6px;
+}
+.password-toggle:hover {
+  color: var(--primary);
+  background: var(--panel-soft);
+}
+
 .btn {
   display: inline-flex;
   align-items: center;

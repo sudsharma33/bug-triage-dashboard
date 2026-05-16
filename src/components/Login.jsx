@@ -6,6 +6,7 @@ function Login() {
   const [tab, setTab] = useState('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -62,15 +63,26 @@ function Login() {
             autoComplete="email"
           />
           <label htmlFor="auth-password">Password</label>
-          <input
-            id="auth-password"
-            type="password"
-            value={password}
-            onChange={e => setPassword(e.target.value)}
-            required
-            minLength={6}
-            autoComplete={tab === 'login' ? 'current-password' : 'new-password'}
-          />
+          <div className="password-field">
+            <input
+              id="auth-password"
+              type={showPassword ? 'text' : 'password'}
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              required
+              minLength={6}
+              autoComplete={tab === 'login' ? 'current-password' : 'new-password'}
+            />
+            <button
+              type="button"
+              className="password-toggle"
+              onClick={() => setShowPassword(s => !s)}
+              aria-label={showPassword ? 'Hide password' : 'Show password'}
+              tabIndex={-1}
+            >
+              {showPassword ? 'Hide' : 'Show'}
+            </button>
+          </div>
           <button type="submit" className="btn btn-primary btn-block" disabled={loading}>
             {loading ? 'Working…' : (tab === 'login' ? 'Sign in' : 'Create account')}
           </button>
